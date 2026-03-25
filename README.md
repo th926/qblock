@@ -7,11 +7,12 @@ Note: The bash script is kinda bæsj sooo uhh yeah
 You can build it yourself using one of the `build.*` scripts or download a release which has the binary premade. If you are not om M series MacOs you will need to change the `Cargo.toml` target.
 
 Run the install script which will create the following files in `~/.config/qblock/`
-template
-├--template.php
-├--block.json
-└--assets
-    └--template.scss
+
+- template
+- template.php
+- block.json
+- assets
+  - template.scss
 uninstall.sh
 uninstall.fish
 qblock
