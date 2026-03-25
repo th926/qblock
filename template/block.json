@@ -1,0 +1,11 @@
+{
+	"name": "acf/LOW_PLACEHOLDER",
+	"title": "CAP_PLACEHOLDER",
+	"description": "CAP_PLACEHOLDER block",
+	"icon": "star",
+	"supports": {
+		"mode": false,
+		"align": false,
+		"color": false
+	}
+}
