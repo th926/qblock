@@ -13,6 +13,6 @@ if test -d $target_dir
 end
 
 mkdir -p "$target_dir/template"
-cp "template/* $target_dir/template"
-cp "$bin_name $target_dir"
-ln "-sf $target_dir/$bin_name $link_loc"
+cp "template/*" "$target_dir/template"
+cp "$bin_name" "$target_dir"
+ln "-sf $target_dir/$bin_name" "$link_loc"
