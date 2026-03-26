@@ -9,18 +9,9 @@ fn main() {
     let mut has_acf = false;
     let asset_path: PathBuf = Path::new("assets").to_path_buf();
     let bname = match env::args().nth(1) {
-        Some(i) => i.to_lowercase(),
-        None => String::new(),
+        Some(i) => Block::new(&i),
+        None => {help(); panic!("You need to provide a name for the block!");},
     };
-    if bname.is_empty() {
-        help();
-        panic!("You need to provide a block name");
-    }
-    let bname_cap = match f_upped(&bname) {
-        Some(i) => i.replace("-", " "),
-        None => String::from(&bname),
-    };
-    let bname_path = PathBuf::from(Path::new(&bname));
     let acf_options: Vec<String> = env::args().skip(2).collect();
     if !acf_options.is_empty() {
         has_acf = true;
@@ -49,13 +40,12 @@ fn main() {
         },
         None => panic!("Something strange happened sorry lol"),
     };
-    match fs::create_dir_all(&wp_block_src_path.join(&bname_path.join(&asset_path))) {
+    match fs::create_dir_all(&wp_block_src_path.join(&bname.to_path().join(&asset_path))) {
         Ok(_) => (),
         Err(e) => panic!("Error block already exists: {}", e),
     }
     let low_placeholder = "LOW_PLACEHOLDER";
     let cap_placeholder = "CAP_PLACEHOLDER";
-    let block_base = PathBuf::from(&bname);
     for template in templates {
         let template_file = &template_location.join(&template.location);
         let mut template_content = match fs::read_to_string(&template_file) {
@@ -63,19 +53,19 @@ fn main() {
             Err(e) => panic!("Failed reading file: {}, Error: {}", &template_file.display(), e),
         };
         if template.low {
-            template_content = template_content.replace(&low_placeholder, &bname);
+            template_content = template_content.replace(&low_placeholder, &bname.name);
         }
         if template.cap {
-            template_content = template_content.replace(&cap_placeholder, &bname_cap);
+            template_content = template_content.replace(&cap_placeholder, &bname.to_upper());
         }
-        let mut write_location: PathBuf = PathBuf::from(&wp_block_src_path.join(block_base.join(&template.location)));
+        let mut write_location: PathBuf = PathBuf::from(&wp_block_src_path.join(&bname.to_path().join(&template.location)));
         if template.is_assets {
-            write_location = PathBuf::from(write_location.into_os_string().into_string().unwrap().replace("template", &bname));
+            write_location = PathBuf::from(write_location.into_os_string().into_string().unwrap().replace("template", &bname.name));
         }
         match fs::write(&write_location, template_content) {
             Ok(_) => (),
             Err(e) => {
-                match fs::remove_dir_all(&block_base){
+                match fs::remove_dir_all(&bname.to_path()){
                     Ok(_) => (),
                     Err(e_i) => panic!("Failed failing cleanup had errors: {}", e_i),
                 }
@@ -85,14 +75,6 @@ fn main() {
         if has_acf {
             println!("This feature is under development lol");
         }
-    }
-}
-
-fn f_upped(s: &String)-> Option<String> {
-    let mut c = s.chars();
-    match c.next() {
-        None => None,
-        Some(f) => Some(f.to_uppercase().collect::<String>() + c.as_str()),
     }
 }
 
@@ -115,10 +97,10 @@ impl Block {
         Path::new(&self.name)
     }
 
-    fn f_upped(s: &String)-> String {
-        let mut c = s.chars();
+    fn to_upper(&self)-> String {
+        let mut c = self.name.chars();
         match c.next() {
-            None => s.to_uppercase(),
+            None => self.name.to_uppercase(),
             Some(f) => (f.to_uppercase().collect::<String>() + c.as_str()).replace("-", " "),
         }
     }
