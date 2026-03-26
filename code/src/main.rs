@@ -29,7 +29,7 @@ fn main() {
         Template::new(false, true, false, Path::new("template.php")),
         Template::new(true, true, false, Path::new("block.json")),
         Template::new(true, false, true, Path::new("assets/template.scss"))];
-        let template_location: PathBuf = PathBuf::from(Path::new("/Users/trygve/.config/fish/functions/qblock_template"));
+        let template_location: PathBuf = PathBuf::from(Path::new("/Users/trygve/.config/qblock/template"));
     let current_dir = match env::current_dir() {
         Ok(dir) => dir,
         Err(e) => panic!("{}", e),
