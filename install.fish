@@ -17,5 +17,5 @@ if !test -d $link_dir
     mkdir -p $link_dir
 end
 ln -sf "$target_dir/$bin_name" "$link_loc"
-set -U fish_user_paths "/usr/local/bin"
+set -U fish_user_paths "/usr/local/bin" $fish_user_paths
 echo "/usr/local/bin has been added to path, just so you know"
