@@ -100,6 +100,37 @@ fn help() {
 
 }
 
+struct Block {
+    name: String,
+}
+
+impl Block {
+    fn new(in_name: &str) -> Self {
+        Self {
+            name: String::from(in_name)
+        }
+    }
+
+    fn to_path(&self) -> &Path {
+        Path::new(&self.name)
+    }
+
+    fn f_upped(s: &String)-> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => s.to_uppercase(),
+            Some(f) => (f.to_uppercase().collect::<String>() + c.as_str()).replace("-", " "),
+        }
+    }
+}
+
+struct WPinstall {
+    sname: String,
+    block_path: PathBuf,
+    theme_path: PathBuf,
+    location: PathBuf,
+}
+
 struct Template {
     low: bool,
     cap: bool,
