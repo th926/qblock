@@ -25,11 +25,16 @@ fn main() {
     if !acf_options.is_empty() {
         has_acf = true;
     }
+    let home_var = match env::var("HOME") {
+        Ok(var) => var,
+        Err(e) => panic!("$HOME variable might not be set, Error: {}", e),
+    };
+    let home_path = PathBuf::from(&home_var);
     let templates: Vec<Template> = vec![
         Template::new(false, true, false, Path::new("template.php")),
         Template::new(true, true, false, Path::new("block.json")),
         Template::new(true, false, true, Path::new("assets/template.scss"))];
-        let template_location: PathBuf = PathBuf::from(Path::new("/Users/trygve/.config/qblock/template"));
+        let template_location: PathBuf = home_path.join(".config/qblock/template"); // Needs change on linux
     let current_dir = match env::current_dir() {
         Ok(dir) => dir,
         Err(e) => panic!("{}", e),
