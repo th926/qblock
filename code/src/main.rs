@@ -4,9 +4,8 @@ use std::fs;
 
 fn main() {
     let mut has_acf = false;
-    let asset_path: PathBuf = Path::new("assets").to_path_buf();
     let bname = match env::args().nth(1) {
-        Some(i) => Block::new(&i),
+        Some(i) => i,
         None => {help(); panic!("You need to provide a name for the block!");},
     };
     let acf_options: Vec<String> = env::args().skip(2).collect();
@@ -18,11 +17,14 @@ fn main() {
         Err(e) => panic!("$HOME variable might not be set, Error: {}", e),
     };
     let home_path = PathBuf::from(&home_var);
-    let templates: Vec<Template> = vec![
-        Template::new(false, true, false, Path::new("template.php")),
-        Template::new(true, true, false, Path::new("block.json")),
-        Template::new(true, false, true, Path::new("assets/template.scss"))];
-        let template_location: PathBuf = home_path.join(".config/qblock/template");
+    let block = Block::new("assets", &bname);
+    let templates: Vec<Template> = vec![ // Can I make this prettie?
+        Template::new((false, true, false), "template.php", None),
+        Template::new((true, true, false), "block.json", None),
+        Template::new((true, false, true), "assets/template.scss", Some(&block.name))
+    ];
+
+    let template_conf = TemplateConfig::new(templates, &home_path.join(".config/qblock/template"));
     let current_dir = match env::current_dir() {
         Ok(dir) => dir,
         Err(e) => panic!("{}", e),
@@ -31,42 +33,18 @@ fn main() {
         Some(dir) => WPinstall::new(Path::new(&dir)),
         None => panic!("You are not in a wordpress installation!!!!!!!!"),
     };
-    match fs::create_dir_all(&wp.full_path.join(&bname.to_path()).join(&asset_path)) {
+    match fs::create_dir_all(&wp.full_path.join(&block.to_full_path())) {
         Ok(_) => (),
         Err(e) => panic!("Error block already exists: {}", e),
     }
-    let low_placeholder = "LOW_PLACEHOLDER";
-    let cap_placeholder = "CAP_PLACEHOLDER";
-    for template in templates {
-        let template_file = &template_location.join(&template.location);
-        let mut template_content = match fs::read_to_string(&template_file) {
-            Ok(res) => res,
-            Err(e) => panic!("Failed reading file: {}, Error: {}", &template_file.display(), e),
-        };
-        if template.low {
-            template_content = template_content.replace(&low_placeholder, &bname.name);
-        }
-        if template.cap {
-            template_content = template_content.replace(&cap_placeholder, &bname.to_upper());
-        }
-        let mut write_location: PathBuf = PathBuf::from(&wp.full_path.join(&bname.to_path().join(&template.location)));
-        if template.is_assets {
-            write_location = PathBuf::from(write_location.into_os_string().into_string().unwrap().replace("template", &bname.name));
-        }
-        match fs::write(&write_location, template_content) {
-            Ok(_) => (),
-            Err(e) => {
-                match fs::remove_dir_all(&bname.to_path()){
-                    Ok(_) => (),
-                    Err(e_i) => panic!("Failed failing cleanup had errors: {}", e_i),
-                }
-                panic!("Failed writing to file: {}, Error: {}", &write_location.display(), e);
-            },
-        };
+    let placeholders = ReplacerPlaceholders::new("CAP_PLACEHOLDER", "LOW_PLACEHOLDER");
+    let replacer = Replacer::new(wp, placeholders);
+    for template in template_conf.templates {
+        replacer.template_to_block(&template, &block);
+    }
         if has_acf {
             println!("This feature is under development lol");
         }
-    }
 }
 
 fn help() {
@@ -75,18 +53,25 @@ fn help() {
 
 struct Block {
     name: String,
-    block_files: Vec<Template>,
+    full_path: PathBuf,
 }
 
 impl Block {
-    fn new(in_name: &str, ) -> Self {
+    fn new(in_name: &str, asset: &String) -> Self {
+        let tmp_name = String::from(in_name);
+        let tmp_path = PathBuf::from(&tmp_name).join(asset);
         Self {
-            name: String::from(in_name)
+            name: tmp_name,
+            full_path: tmp_path,
         }
     }
 
     fn to_path(&self) -> &Path {
         Path::new(&self.name)
+    }
+
+    fn to_full_path(&self) -> &Path {
+        &self.full_path
     }
 
     fn to_upper(&self)-> String {
@@ -149,44 +134,100 @@ impl WPinstall {
     }
 }
 
-enum TemplateInfo {
-    Low,
-    Cap,
-    IsAssets,
-}
-
-type TI = TemplateInfo;
-
-// Change the booleans to use enums instead
+#[derive(Clone)]
 struct Template {
     low: bool,
     cap: bool,
     is_assets: bool,
     location: PathBuf,
+    namechange: Option<PathBuf>
 }
 
 impl Template {
-    pub fn new(triple: (bool, bool, bool), i_location: &str) -> Template {
+    pub fn new(triple: (bool, bool, bool), i_location: &str, bname: Option<&str>) -> Template {
+        let changed_name: Option<PathBuf>;
+        if triple.2 {
+            changed_name =  Some(PathBuf::from(i_location.replace("template", &bname.unwrap())));
+        } else {
+            changed_name = None;
+        }
         Template {
             low: triple.0,
             cap: triple.1,
             is_assets: triple.2,
+            namechange: changed_name,
             location: PathBuf::from(Path::new(i_location)),
         }
     }
 }
 
-struct TemplateMan {
+struct TemplateConfig {
+    location: PathBuf,
     templates: Vec<Template>,
 }
 
+impl TemplateConfig {
+    fn new(temps: Vec<Template>, loc: &Path) -> Self {
+        Self {
+            location: PathBuf::from(loc),
+            templates: temps,
+        }
+    }
+}
+
+struct ReplacerPlaceholders {
+    cap_pattern: String,
+    low_pattern: String,
+}
+
+impl ReplacerPlaceholders {
+    fn new(cap: &str, low: &str) -> Self {
+        Self {
+            cap_pattern: String::from(cap),
+            low_pattern: String::from(low),
+        }
+    }
+}
+
 struct Replacer {
-    block: Block,
-    template: TemplateMan,
+    placeholders: ReplacerPlaceholders,
+    wp: WPinstall,
 }
 
 impl Replacer {
-    fn template_to_block(template: Template, block: Block) {
-
+    fn new(in_wp: WPinstall, in_placeholders: ReplacerPlaceholders) -> Self {
+        Self {
+            placeholders: in_placeholders,
+            wp: in_wp,
+        }
+    }
+    fn template_to_block(&self, template: &Template, block: &Block) {
+        let template_full_path = self.wp.full_path.join(&template.location);
+        let mut template_content = match fs::read_to_string(&template_full_path) {
+            Ok(res) => res,
+            Err(e) => panic!("Failed reading file: {}, Error: {}", &template_full_path.display(), e),
+        };
+        if template.low {
+            template_content = template_content.replace(&self.placeholders.low_pattern, &block.name);
+        }
+        if template.cap {
+            template_content = template_content.replace(&self.placeholders.cap_pattern, &block.to_upper());
+        }
+        let block_full_path: PathBuf;
+        if template.is_assets {
+            block_full_path = self.wp.full_path.join(&block.to_path()).join(template.namechange.unwrap());
+        } else {
+            block_full_path = self.wp.full_path.join(&block.to_path()).join(template.location);
+        }
+        match fs::write(&block_full_path, template_content) {
+            Ok(_) => (),
+            Err(e) => {
+                match fs::remove_dir_all(&block.to_path()){
+                    Ok(_) => (),
+                    Err(e_i) => panic!("Failed failing cleanup had errors: {}", e_i),
+                }
+                panic!("Failed writing to file: {}, Error: {}", &block_full_path.display(), e);
+            },
+        };
     }
 }
