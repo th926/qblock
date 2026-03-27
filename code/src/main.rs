@@ -3,9 +3,6 @@ use std::path::{PathBuf, Path};
 use std::fs;
 
 fn main() {
-    let wp_block_src_placeholder = "{sname}";
-    let wp_block_src = String::from("wp-content/themes/{sname}/src/blocks");
-    let wp_block_src_path: PathBuf;
     let mut has_acf = false;
     let asset_path: PathBuf = Path::new("assets").to_path_buf();
     let bname = match env::args().nth(1) {
@@ -25,22 +22,16 @@ fn main() {
         Template::new(false, true, false, Path::new("template.php")),
         Template::new(true, true, false, Path::new("block.json")),
         Template::new(true, false, true, Path::new("assets/template.scss"))];
-        let template_location: PathBuf = home_path.join(".config/qblock/template"); // Needs change on linux
+        let template_location: PathBuf = home_path.join(".config/qblock/template");
     let current_dir = match env::current_dir() {
         Ok(dir) => dir,
         Err(e) => panic!("{}", e),
     };
-    let wp_root = match find_wp_root(current_dir) {
-        Some(dir) => dir,
+    let wp = match WPinstall::find_wp_root(current_dir) {
+        Some(dir) => WPinstall::new(Path::new(&dir)),
         None => panic!("You are not in a wordpress installation!!!!!!!!"),
     };
-    match wp_root.file_stem() {
-        Some(name) => {
-            wp_block_src_path = PathBuf::from(wp_block_src.replace(wp_block_src_placeholder, name.to_str().unwrap()));
-        },
-        None => panic!("Something strange happened sorry lol"),
-    };
-    match fs::create_dir_all(&wp_block_src_path.join(&bname.to_path().join(&asset_path))) {
+    match fs::create_dir_all(&wp.full_path.join(&bname.to_path()).join(&asset_path)) {
         Ok(_) => (),
         Err(e) => panic!("Error block already exists: {}", e),
     }
@@ -58,7 +49,7 @@ fn main() {
         if template.cap {
             template_content = template_content.replace(&cap_placeholder, &bname.to_upper());
         }
-        let mut write_location: PathBuf = PathBuf::from(&wp_block_src_path.join(&bname.to_path().join(&template.location)));
+        let mut write_location: PathBuf = PathBuf::from(&wp.full_path.join(&bname.to_path().join(&template.location)));
         if template.is_assets {
             write_location = PathBuf::from(write_location.into_os_string().into_string().unwrap().replace("template", &bname.name));
         }
@@ -107,10 +98,54 @@ impl Block {
 }
 
 struct WPinstall {
-    sname: String,
+    site_name: PathBuf,
     block_path: PathBuf,
     theme_path: PathBuf,
     location: PathBuf,
+    full_path: PathBuf,
+}
+
+impl WPinstall {
+    fn new(in_location: &Path) -> Self {
+        let bp = String::from("src/blocks");
+        let tp = String::from("wp-content/themes");
+        let sn = PathBuf::from(in_location.file_stem().unwrap());
+        let full = in_location.join(&tp).join(&sn).join(&bp);
+        Self {
+            block_path: PathBuf::from(bp),
+            theme_path: PathBuf::from(tp),
+            site_name: sn,
+            location: PathBuf::from(in_location),
+            full_path: full,
+        }
+    }
+    fn find_wp_root(start_path: PathBuf) -> Option<PathBuf> {
+        let target_files = ["wp-content", "wp-admin", "wp-config.php"];
+        let mut current_path = start_path;
+
+        loop {
+            let mut found_count = 0;
+
+            for target_file in target_files {
+                let file_path = current_path.join(target_file);
+                if file_path.exists() {
+                    found_count += 1;
+                }
+            }
+            if found_count == target_files.len() {
+                return Some(current_path);
+            }
+
+            match current_path.parent() {
+                Some(parent) if parent != current_path => {
+                    current_path = parent.to_path_buf();
+                }
+                _ => {
+                    return None;
+                }
+            }
+        }
+    }
 }
 
 struct Template {
@@ -127,33 +162,7 @@ impl Template {
 }
 
 
-fn find_wp_root(start_path: PathBuf) -> Option<PathBuf> {
-    let target_files = ["wp-content", "wp-admin", "wp-config.php"];
-    let mut current_path = start_path;
 
-    loop {
-        let mut found_count = 0;
-
-        for target_file in target_files {
-            let file_path = current_path.join(target_file);
-            if file_path.exists() {
-                found_count += 1;
-            }
-        }
-        if found_count == target_files.len() {
-            return Some(current_path);
-        }
-
-        match current_path.parent() {
-            Some(parent) if parent != current_path => {
-                current_path = parent.to_path_buf();
-            }
-            _ => {
-                return None;
-            }
-        }
-    }
-}
 
 //TemplateFolder
 //
