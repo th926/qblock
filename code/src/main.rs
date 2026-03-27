@@ -75,10 +75,11 @@ fn help() {
 
 struct Block {
     name: String,
+    block_files: Vec<Template>,
 }
 
 impl Block {
-    fn new(in_name: &str) -> Self {
+    fn new(in_name: &str, ) -> Self {
         Self {
             name: String::from(in_name)
         }
@@ -148,6 +149,15 @@ impl WPinstall {
     }
 }
 
+enum TemplateInfo {
+    Low,
+    Cap,
+    IsAssets,
+}
+
+type TI = TemplateInfo;
+
+// Change the booleans to use enums instead
 struct Template {
     low: bool,
     cap: bool,
@@ -156,18 +166,27 @@ struct Template {
 }
 
 impl Template {
-    pub fn new(i_low: bool, i_cap: bool, i_assets: bool, i_location: &Path) -> Template {
-        Template {low: i_low, cap: i_cap, is_assets: i_assets, location: PathBuf::from(i_location)}
+    pub fn new(triple: (bool, bool, bool), i_location: &str) -> Template {
+        Template {
+            low: triple.0,
+            cap: triple.1,
+            is_assets: triple.2,
+            location: PathBuf::from(Path::new(i_location)),
+        }
     }
 }
 
+struct TemplateMan {
+    templates: Vec<Template>,
+}
 
+struct Replacer {
+    block: Block,
+    template: TemplateMan,
+}
 
+impl Replacer {
+    fn template_to_block(template: Template, block: Block) {
 
-//TemplateFolder
-//
-// Template
-//  lower bool
-//  caper bool
-//  location
-//
+    }
+}
