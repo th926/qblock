@@ -6,7 +6,7 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(in_name: &str, asset: &String) -> Self {
+    pub fn new(in_name: &String, asset: &str) -> Self {
         let tmp_name = String::from(in_name);
         let tmp_path = PathBuf::from(&tmp_name).join(asset);
         Self {

@@ -24,7 +24,7 @@ fn main() {
         Err(e) => panic!("$HOME variable might not be set, Error: {}", e),
     };
     let home_path = PathBuf::from(&home_var);
-    let block = Block::new("assets", &bname);
+    let block = Block::new(&bname, "assets");
     let templates: Vec<Template> = vec![ // Can I make this prettie?
         Template::new((false, true, false), "template.php", None),
         Template::new((true, true, false), "block.json", None),
