@@ -31,7 +31,7 @@ impl Replacer {
         }
     }
     pub fn template_to_block(&self, template: Template, template_path: &PathBuf, block: &Block) {
-        let template_full_path = self.wp.full_path.join(&template.location); // Change template
+        let template_full_path = template_path .join(&template.location);
         let mut template_content = match fs::read_to_string(&template_full_path) {
             Ok(res) => res,
             Err(e) => panic!("Failed reading file: {}, Error: {}", &template_full_path.display(), e),
