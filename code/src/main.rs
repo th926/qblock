@@ -47,8 +47,7 @@ fn main() {
     let placeholders = ReplacerPlaceholders::new("CAP_PLACEHOLDER", "LOW_PLACEHOLDER");
     let replacer = Replacer::new(wp, placeholders);
     for template in template_conf.templates {
-        let template_path = &template_conf.location.join(&template.location);
-        replacer.template_to_block(template, template_path, &block);
+        replacer.template_to_block(template, &template_conf.location, &block);
     }
         if has_acf {
             println!("This feature is under development lol");
